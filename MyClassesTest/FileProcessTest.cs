@@ -1,12 +1,19 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MyClasses;
+using System.Configuration;
+using System.IO;
 
 namespace MyClassesTest
 {
     [TestClass]
     public class FileProcessTest
     {
+        private const string BadFileName = @"C:\Windows\BadFileName.bad";//created to prevent hard coding
+
+        private string GoodFileName;//created to prevent hard coding
+
+
         [TestMethod]
         public void FileName()
         {
@@ -15,11 +22,30 @@ namespace MyClassesTest
             bool fromCall;
 
             //act
-            fromCall = fp.FileExists(@"C:\Windows\Regedit.exe");
+            SetGoodFileName();
+            File.AppendAllText(GoodFileName, "Some text");
+            fromCall = fp.FileExists(GoodFileName);
+            File.Delete(GoodFileName);
 
             //assert
             Assert.IsTrue(fromCall);
         }
+
+
+        //grabs key value "GoodFileName" and places into GoodFileName
+        //then checks to see if it contains token "[AppPath]"
+        //then replaces it with the ApplicationData folder
+        //so when this runs, it will have a fully qualified path and file name in it
+        public void SetGoodFileName()
+        {
+            GoodFileName = ConfigurationManager.AppSettings["GoodFileName"];
+            if (GoodFileName.Contains("[AppPath]"))
+            {
+                GoodFileName = GoodFileName.Replace("[AppPath]",
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
+            }
+        }
+
 
         [TestMethod]
         public void FileNameDoesNotExist()
@@ -29,14 +55,14 @@ namespace MyClassesTest
             bool fromCall;
 
             //act
-            fromCall = fp.FileExists(@"C:\Windows\BadFileName.bad");
+            fromCall = fp.FileExists(BadFileName);
 
             //assert
             Assert.IsFalse(fromCall);
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]//this works as the assert for checking a thrown arugment exception
+        [ExpectedException(typeof(ArgumentNullException))]//this works as the assert for checking a thrown arugment exception
         public void FileNameNullOrEmpty_ThrowsArgumentNullException()
         {
             //arrange
